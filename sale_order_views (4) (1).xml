@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- Form View - Apenas a funcionalidade nos pedidos -->
+        <record id="view_order_form_loan" model="ir.ui.view">
+            <field name="name">sale.order.form.loan</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_form"/>
+            <field name="arch" type="xml">
+                
+                <!-- Campos invisíveis -->
+                <field name="partner_id" position="after">
+                    <field name="is_loan_order" invisible="1"/>
+                    <field name="is_loan_renegotiation" invisible="1"/>
+                </field>
+                
+                <!-- Botão para gerar parcelas -->
+                <button name="action_confirm" position="after">
+                    <button name="action_generate_loan_installments" 
+                            string="Gerar Parcelas" 
+                            type="object" 
+                            class="btn-primary"
+                            invisible="is_loan_order == False or installments_generated == True"
+                            groups="sales_team.group_sale_salesman"/>
+                </button>
+                
+                <!-- Botão para ver parcelas -->
+                <div name="button_box" position="inside">
+                    <button class="oe_stat_button" type="object" name="action_view_installments" 
+                            icon="fa-list-alt" invisible="installments_count == 0">
+                        <field name="installments_count" widget="statinfo" string="Parcelas"/>
+                    </button>
+                </div>
+                
+                <!-- Status do empréstimo -->
+                <field name="state" position="after">
+                    <field name="loan_status" 
+                           widget="statusbar" 
+                           statusbar_visible="draft,active,paid"
+                           invisible="is_loan_order == False"/>
+                </field>
+                
+                <!-- Aba de informações do empréstimo -->
+                <page name="order_lines" position="after">
+                    <page string="Informações do Empréstimo" 
+                          invisible="is_loan_order == False">
+                        
+                        <!-- Indicador de renegociação -->
+                        <div class="alert alert-warning" role="alert" 
+                             invisible="is_loan_renegotiation == False">
+                            <h4><i class="fa fa-refresh"/> Empréstimo Renegociado</h4>
+                            <p>Este é um empréstimo resultado de renegociação do empréstimo: 
+                               <field name="loan_origin_order_id" readonly="1" class="font-weight-bold"/>
+                            </p>
+                        </div>
+                        
+                        <group>
+                            <group string="Valores">
+                                <field name="loan_requested_amount"/>
+                                <field name="loan_released_amount"/>
+                                <field name="loan_total_amount" readonly="1" 
+                                       class="text-success font-weight-bold"/>
+                                <field name="loan_balance" readonly="1" 
+                                       class="text-warning font-weight-bold"/>
+                            </group>
+                            <group string="Configurações">
+                                <field name="loan_interest_rate"/>
+                                <field name="loan_interest_period"/>
+                                <field name="loan_weeks"/>
+                                <field name="loan_start_date"/>
+                                <field name="loan_installment_amount" readonly="1" 
+                                       class="text-primary font-weight-bold"/>
+                            </group>
+                        </group>
+                        
+                        <!-- Ações do empréstimo -->
+                        <group>
+                            <group string="Ações">
+                                <button name="action_generate_loan_installments" 
+                                        string="Gerar Parcelas" 
+                                        type="object" 
+                                        class="btn-primary"
+                                        invisible="is_loan_order == False or installments_generated == True"/>
+                                
+                                <button name="action_view_installments" 
+                                        string="Ver Parcelas" 
+                                        type="object" 
+                                        class="btn-info"
+                                        invisible="installments_count == 0"/>
+                                
+                                <button name="action_open_renegotiation_wizard" 
+                                        string="Renegociar" 
+                                        type="object" 
+                                        class="btn-warning"
+                                        invisible="loan_status not in ('active', 'late') or is_loan_order == False"/>
+                            </group>
+                            
+                            <group string="Status das Parcelas" invisible="installments_count == 0">
+                                <field name="installments_generated" readonly="1"/>
+                                <field name="installments_count" readonly="1"/>
+                            </group>
+                        </group>
+                        
+                        <!-- Renegociação -->
+                        <group string="Renegociação" invisible="is_loan_renegotiation == False">
+                            <field name="loan_origin_order_id" readonly="1"/>
+                        </group>
+                        
+                        <!-- Resumo calculado -->
+                        <div class="alert alert-light border" role="alert" 
+                             invisible="loan_total_amount == 0 or loan_weeks == 0">
+                            <h5><i class="fa fa-calculator text-primary"/> Resumo do Empréstimo</h5>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <strong>Valor Liberado:</strong><br/>
+                                    <span class="text-muted">
+                                        <field name="loan_released_amount" readonly="1" nolabel="1" 
+                                               widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    </span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Total a Pagar:</strong><br/>
+                                    <span class="text-success">
+                                        <field name="loan_total_amount" readonly="1" nolabel="1" 
+                                               widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    </span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Valor por Parcela:</strong><br/>
+                                    <span class="text-primary">
+                                        <field name="loan_installment_amount" readonly="1" nolabel="1" 
+                                               widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    </span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Número de Parcelas:</strong><br/>
+                                    <span class="text-info"><field name="loan_weeks" readonly="1" nolabel="1"/> semanas</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Instruções -->
+                        <div class="alert alert-info" role="alert" style="margin: 20px 0;"
+                             invisible="installments_generated == True">
+                            <strong>💡 Como usar:</strong>
+                            <ol>
+                                <li>Preencha os valores acima</li>
+                                <li>Clique em <strong>Salvar</strong></li>
+                                <li>Volte para aba <strong>"Linhas do pedido"</strong> para ver o valor calculado</li>
+                                <li>Clique em <strong>"Gerar Parcelas"</strong> para finalizar</li>
+                            </ol>
+                        </div>
+                        
+                        <!-- Lista das parcelas (versão simples) -->
+                        <div invisible="installments_count == 0">
+                            <separator string="Parcelas do Empréstimo"/>
+                            <p>
+                                <strong>Total de parcelas:</strong> <field name="installments_count" readonly="1" nolabel="1"/> 
+                                <br/>
+                                <button name="action_view_installments" 
+                                        string="📋 Ver Todas as Parcelas" 
+                                        type="object" 
+                                        class="btn-primary"/>
+                            </p>
+                        </div>
+                        
+                    </page>
+                </page>
+            </field>
+        </record>
+
+        <!-- Tree view melhorada -->
+        <record id="view_order_tree_loan" model="ir.ui.view">
+            <field name="name">sale.order.tree.loan</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_tree"/>
+            <field name="arch" type="xml">
+                <field name="amount_total" position="after">
+                    <field name="loan_balance" optional="show" 
+                           column_invisible="is_loan_order == False"/>
+                    <field name="loan_status" optional="show" 
+                           column_invisible="is_loan_order == False" 
+                           widget="badge"/>
+                    <field name="is_loan_order" optional="hide"/>
+                </field>
+            </field>
+        </record>
+
+        <!-- Search view melhorada -->
+        <record id="view_sales_order_filter_loan" model="ir.ui.view">
+            <field name="name">sale.order.search.loan</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+            <field name="arch" type="xml">
+                <filter name="my_sale_orders_filter" position="after">
+                    <separator/>
+                    <filter string="Empréstimos" name="loan_orders" domain="[('is_loan_order', '=', True)]"/>
+                    <filter string="Empréstimos Ativos" name="active_loans" domain="[('is_loan_order', '=', True), ('loan_status', '=', 'active')]"/>
+                    <filter string="Empréstimos Atrasados" name="late_loans" domain="[('is_loan_order', '=', True), ('loan_status', '=', 'late')]"/>
+                    <filter string="Empréstimos Quitados" name="paid_loans" domain="[('is_loan_order', '=', True), ('loan_status', '=', 'paid')]"/>
+                    <filter string="Renegociações" name="renegotiated_loans" domain="[('is_loan_renegotiation', '=', True)]"/>
+                </filter>
+                
+                <xpath expr="//group[@expand='0']" position="inside">
+                    <filter string="Status do Empréstimo" name="group_loan_status" 
+                            context="{'group_by': 'loan_status'}"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- SEM MENUS! Apenas as funcionalidades integradas nos pedidos de venda -->
+
+    </data>
+</odoo>
