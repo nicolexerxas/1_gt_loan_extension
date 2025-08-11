@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Form View -->
+        <record id="view_loan_installment_form" model="ir.ui.view">
+            <field name="name">loan.installment.form</field>
+            <field name="model">loan.installment</field>
+            <field name="arch" type="xml">
+                <form string="Parcela">
+                    <header>
+                        <button name="action_register_payment" 
+                                string="Marcar como Pago" 
+                                type="object" 
+                                class="btn-primary"
+                                invisible="status == 'paid'"/>
+                        <field name="status" widget="statusbar"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <group string="Informações da Parcela">
+                                <field name="sale_order_id" readonly="1"/>
+                                <field name="partner_id" readonly="1"/>
+                                <field name="number" readonly="1"/>
+                                <field name="due_date" readonly="1"/>
+                                <field name="days_late" readonly="1" invisible="days_late == 0"/>
+                            </group>
+                            <group string="Valores">
+                                <field name="amount" readonly="1"/>
+                                <field name="amount_paid"/>
+                                <field name="payment_date"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- List View (CORRIGIDO PARA ODOO 18) -->
+        <record id="view_loan_installment_tree" model="ir.ui.view">
+            <field name="name">loan.installment.tree</field>
+            <field name="model">loan.installment</field>
+            <field name="arch" type="xml">
+                <list string="Parcelas" 
+                      decoration-success="status == 'paid'"
+                      decoration-warning="status == 'late'"
+                      decoration-info="status == 'partial'"
+                      editable="bottom">
+                    <field name="sale_order_id" readonly="1"/>
+                    <field name="partner_id" readonly="1"/>
+                    <field name="number" readonly="1"/>
+                    <field name="due_date" readonly="1"/>
+                    <field name="amount" readonly="1" sum="Total"/>
+                    <field name="amount_paid" sum="Total Pago"/>
+                    <field name="payment_date"/>
+                    <field name="days_late" readonly="1" optional="show"/>
+                    <field name="status"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Search View -->
+        <record id="view_loan_installment_search" model="ir.ui.view">
+            <field name="name">loan.installment.search</field>
+            <field name="model">loan.installment</field>
+            <field name="arch" type="xml">
+                <search string="Buscar Parcelas">
+                    <field name="sale_order_id"/>
+                    <field name="partner_id"/>
+                    <filter string="Vencendo Hoje" name="due_today" 
+                            domain="[('due_date', '=', context_today().strftime('%Y-%m-%d')), ('status', '!=', 'paid')]"/>
+                    <filter string="Atrasadas" name="late" 
+                            domain="[('status', '=', 'late')]"/>
+                    <filter string="Pendentes" name="pending" 
+                            domain="[('status', '=', 'pending')]"/>
+                    <filter string="Pagas" name="paid" 
+                            domain="[('status', '=', 'paid')]"/>
+                    <separator/>
+                    <group expand="0" string="Agrupar por">
+                        <filter string="Cliente" name="group_partner" domain="[]" context="{'group_by': 'partner_id'}"/>
+                        <filter string="Ordem" name="group_order" domain="[]" context="{'group_by': 'sale_order_id'}"/>
+                        <filter string="Status" name="group_status" domain="[]" context="{'group_by': 'status'}"/>
+                        <filter string="Vencimento" name="group_due_date" domain="[]" context="{'group_by': 'due_date:month'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- Actions (CORRIGIDOS PARA ODOO 18) -->
+        <record id="action_loan_installments" model="ir.actions.act_window">
+            <field name="name">Todas as Parcelas</field>
+            <field name="res_model">loan.installment</field>
+            <field name="view_mode">list,form,pivot</field>
+            <field name="search_view_id" ref="view_loan_installment_search"/>
+        </record>
+
+        <record id="action_loan_installments_today" model="ir.actions.act_window">
+            <field name="name">Cobranças do Dia</field>
+            <field name="res_model">loan.installment</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_loan_installment_search"/>
+            <field name="context">{'search_default_due_today': 1}</field>
+        </record>
+
+        <record id="action_loan_installments_late" model="ir.actions.act_window">
+            <field name="name">Parcelas Atrasadas</field>
+            <field name="res_model">loan.installment</field>
+            <field name="view_mode">list,form,pivot</field>
+            <field name="search_view_id" ref="view_loan_installment_search"/>
+            <field name="context">{'search_default_late': 1}</field>
+        </record>
+
+        <!-- List View com Botões (Para o botão "Ver Todas as Parcelas") -->
+        <record id="loan_installment_tree_view" model="ir.ui.view">
+            <field name="name">loan.installment.list.detailed</field>
+            <field name="model">loan.installment</field>
+            <field name="arch" type="xml">
+                <list decoration-danger="status=='late'" 
+                      decoration-success="status=='paid'"
+                      decoration-warning="status=='partial'"
+                      decoration-muted="status=='pending'"
+                      create="false" 
+                      delete="false">
+                    
+                    <field name="number"/>
+                    <field name="due_date"/>
+                    <field name="amount" sum="Total"/>
+                    <field name="amount_paid" sum="Total Pago"/>
+                    <field name="status" widget="badge"/>
+                    <field name="days_late" optional="hide"/>
+                    <field name="invoice_id" optional="hide"/>
+                    <field name="payment_date" optional="hide"/>
+                    
+                    <!-- BOTÕES DE AÇÃO -->
+                    <button name="action_generate_invoice" 
+                            string="Gerar Fatura" 
+                            type="object" 
+                            icon="fa-file-text-o" 
+                            class="btn-sm btn-primary"
+                            invisible="status == 'paid' or invoice_id != False"/>
+                    
+                    <button name="action_view_invoice" 
+                            string="Ver Fatura" 
+                            type="object" 
+                            icon="fa-eye" 
+                            class="btn-sm btn-info"
+                            invisible="invoice_id == False"/>
+                    
+                    <button name="action_register_payment" 
+                            string="Marcar como Pago" 
+                            type="object" 
+                            icon="fa-check" 
+                            class="btn-sm btn-success"
+                            invisible="status == 'paid'"/>
+                            
+                </list>
+            </field>
+        </record>
+
+        <!-- Form View Detalhado (Para o botão "Ver Todas as Parcelas") -->
+        <record id="loan_installment_form_view" model="ir.ui.view">
+            <field name="name">loan.installment.form.detailed</field>
+            <field name="model">loan.installment</field>
+            <field name="arch" type="xml">
+                <form create="false" delete="false">
+                    <header>
+                        <field name="status" widget="statusbar" statusbar_visible="pending,paid,late,partial"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="display_name" readonly="1"/>
+                            </h1>
+                        </div>
+                        
+                        <group>
+                            <group string="Informações Básicas">
+                                <field name="number" readonly="1"/>
+                                <field name="sale_order_id" readonly="1"/>
+                                <field name="partner_id" readonly="1"/>
+                                <field name="currency_id" invisible="1"/>
+                            </group>
+                            <group string="Valores e Datas">
+                                <field name="amount" readonly="1"/>
+                                <field name="amount_paid"/>
+                                <field name="due_date" readonly="1"/>
+                                <field name="payment_date"/>
+                                <field name="days_late" readonly="1" 
+                                       invisible="status not in ('late', 'partial')"/>
+                            </group>
+                        </group>
+                        
+                        <group string="Faturamento" invisible="invoice_id == False">
+                            <field name="invoice_id" readonly="1"/>
+                            <field name="invoice_state" readonly="1"/>
+                        </group>
+                        
+                        <div class="oe_chatter">
+                            <field name="message_follower_ids"/>
+                            <field name="activity_ids"/>
+                            <field name="message_ids"/>
+                        </div>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Action das Parcelas (Para o botão "Ver Todas as Parcelas") -->
+        <record id="loan_installment_action" model="ir.actions.act_window">
+            <field name="name">Parcelas do Empréstimo</field>
+            <field name="res_model">loan.installment</field>
+            <field name="view_mode">list,form</field>
+            <field name="context">{}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Nenhuma parcela encontrada!
+                </p>
+                <p>
+                    As parcelas são geradas automaticamente quando você clica em "Gerar Parcelas" no empréstimo.
+                </p>
+            </field>
+        </record>
+
+        <!-- Menus -->
+        <menuitem id="menu_loan_installments"
+                  name="Parcelas"
+                  parent="sale.sale_menu_root"
+                  sequence="3"/>
+        
+        <menuitem id="menu_loan_installments_all"
+                  name="Todas as Parcelas"
+                  parent="menu_loan_installments"
+                  action="action_loan_installments"
+                  sequence="1"/>
+        
+        <menuitem id="menu_loan_installments_today"
+                  name="Cobranças do Dia"
+                  parent="menu_loan_installments"
+                  action="action_loan_installments_today"
+                  sequence="2"/>
+        
+        <menuitem id="menu_loan_installments_late"
+                  name="Parcelas Atrasadas"
+                  parent="menu_loan_installments"
+                  action="action_loan_installments_late"
+                  sequence="3"/>
+    </data>
+</odoo>
