@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Melhorar campo CPF/CNPJ no formulário -->
+        <record id="view_partner_form_cpf_cnpj" model="ir.ui.view">
+            <field name="name">res.partner.form.cpf.cnpj</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <!-- Melhorar o campo VAT (CPF/CNPJ) -->
+                <xpath expr="//field[@name='vat']" position="replace">
+                    <label for="vat" string="CPF/CNPJ"/>
+                    <div class="o_row">
+                        <field name="vat" 
+                               placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                               class="o_field_highlight"/>
+                        <field name="vat_valid" 
+                               invisible="vat == False"
+                               readonly="1"
+                               widget="boolean_toggle"
+                               options="{'terminology': {'string_true': 'Válido', 'string_false': 'Inválido'}}"/>
+                    </div>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Lista com indicador de validade -->
+        <record id="view_partner_tree_cpf_cnpj" model="ir.ui.view">
+            <field name="name">res.partner.tree.cpf.cnpj</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_tree"/>
+            <field name="arch" type="xml">
+                <field name="vat" position="after">
+                    <field name="vat_valid" 
+                           optional="show" 
+                           widget="boolean_toggle"
+                           options="{'terminology': {'string_true': '✓', 'string_false': '✗'}}"/>
+                </field>
+            </field>
+        </record>
+
+        <!-- Filtros de busca aprimorados -->
+        <record id="view_partner_search_cpf_cnpj" model="ir.ui.view">
+            <field name="name">res.partner.search.cpf.cnpj</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_res_partner_filter"/>
+            <field name="arch" type="xml">
+                <filter name="customer" position="after">
+                    <separator/>
+                    <filter string="CPF/CNPJ Válido" name="vat_valid" domain="[('vat_valid', '=', True)]"/>
+                    <filter string="CPF/CNPJ Inválido" name="vat_invalid" domain="[('vat_valid', '=', False), ('vat', '!=', False)]"/>
+                    <filter string="Sem CPF/CNPJ" name="no_vat" domain="[('vat', '=', False)]"/>
+                </filter>
+                
+                <group expand="0" string="Agrupar por" position="inside">
+                    <filter string="Validade do CPF/CNPJ" name="group_vat_valid" domain="[]" context="{'group_by': 'vat_valid'}"/>
+                </group>
+            </field>
+        </record>
+
+        <!-- Kanban view com indicador visual -->
+        <record id="view_partner_kanban_cpf_cnpj" model="ir.ui.view">
+            <field name="name">res.partner.kanban.cpf.cnpj</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.res_partner_kanban_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//div[hasclass('oe_kanban_details')]" position="inside">
+                    <div t-if="record.vat.value">
+                        <i class="fa fa-id-card-o"/> 
+                        <field name="vat"/>
+                        <span t-if="record.vat_valid.value" class="badge badge-success">✓</span>
+                        <span t-if="!record.vat_valid.value" class="badge badge-danger">✗</span>
+                    </div>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
