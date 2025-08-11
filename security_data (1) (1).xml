@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Permissões para loan.installment -->
+        <record id="access_loan_installment_user" model="ir.model.access">
+            <field name="name">loan.installment.user</field>
+            <field name="model_id" ref="model_loan_installment"/>
+            <field name="group_id" ref="sales_team.group_sale_salesman"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+        
+        <record id="access_loan_installment_manager" model="ir.model.access">
+            <field name="name">loan.installment.manager</field>
+            <field name="model_id" ref="model_loan_installment"/>
+            <field name="group_id" ref="sales_team.group_sale_manager"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">1</field>
+        </record>
+        
+        <!-- Permissões para loan.renegotiation.wizard -->
+        <record id="access_loan_renegotiation_wizard_user" model="ir.model.access">
+            <field name="name">loan.renegotiation.wizard.user</field>
+            <field name="model_id" ref="model_loan_renegotiation_wizard"/>
+            <field name="group_id" ref="sales_team.group_sale_salesman"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+        
+        <record id="access_loan_renegotiation_wizard_manager" model="ir.model.access">
+            <field name="name">loan.renegotiation.wizard.manager</field>
+            <field name="model_id" ref="model_loan_renegotiation_wizard"/>
+            <field name="group_id" ref="sales_team.group_sale_manager"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">1</field>
+        </record>
+        
+        <!-- Permissões para loan.installment.renegotiation.wizard -->
+        <record id="access_loan_installment_renegotiation_wizard_user" model="ir.model.access">
+            <field name="name">loan.installment.renegotiation.wizard.user</field>
+            <field name="model_id" ref="model_loan_installment_renegotiation_wizard"/>
+            <field name="group_id" ref="sales_team.group_sale_salesman"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+        
+        <record id="access_loan_installment_renegotiation_wizard_manager" model="ir.model.access">
+            <field name="name">loan.installment.renegotiation.wizard.manager</field>
+            <field name="model_id" ref="model_loan_installment_renegotiation_wizard"/>
+            <field name="group_id" ref="sales_team.group_sale_manager"/>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">1</field>
+        </record>
+        
+    </data>
+</odoo>
