@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_loan_renegotiation_wizard_form" model="ir.ui.view">
+        <field name="name">loan.renegotiation.wizard.form</field>
+        <field name="model">loan.renegotiation.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Renegociar Empréstimo">
+                <group>
+                    <group string="Empréstimo Original">
+                        <field name="original_order_id" readonly="1"/>
+                        <field name="partner_id" readonly="1"/>
+                        <field name="balance_due" readonly="1"/>
+                    </group>
+                    <group string="Novo Empréstimo">
+                        <field name="new_loan_amount" widget="monetary"/>
+                        <field name="amount_to_client" readonly="1" widget="monetary"/>
+                        <field name="interest_rate"/>
+                        <field name="weeks"/>
+                        <field name="start_date"/>
+                    </group>
+                </group>
+                <group string="Observações">
+                    <field name="notes" nolabel="1" placeholder="Adicione observações sobre a renegociação..."/>
+                </group>
+                <footer>
+                    <button name="action_confirm_renegotiation" 
+                            string="Confirmar Renegociação" 
+                            type="object" 
+                            class="btn-primary"/>
+                    <button string="Cancelar" 
+                            class="btn-secondary" 
+                            special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
