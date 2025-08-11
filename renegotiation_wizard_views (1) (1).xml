@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- ===================================== -->
+        <!-- WIZARD DE RENEGOCIAÇÃO DE PARCELAS    -->
+        <!-- ===================================== -->
+        
+        <record id="view_loan_installment_renegotiation_wizard_form" model="ir.ui.view">
+            <field name="name">loan.installment.renegotiation.wizard.form</field>
+            <field name="model">loan.installment.renegotiation.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Renegociar Parcelas Atrasadas">
+                    
+                    <!-- HEADER COM INFORMAÇÕES DO EMPRÉSTIMO -->
+                    <div class="alert alert-info mb-3">
+                        <h5><i class="fa fa-handshake-o"/> Renegociação de Parcelas</h5>
+                        <strong>Empréstimo:</strong> <field name="sale_order_id" readonly="1" nolabel="1"/>
+                        <br/>
+                        <strong>Cliente:</strong> <field name="partner_id" readonly="1" nolabel="1"/>
+                    </div>
+                    
+                    <!-- SITUAÇÃO ATUAL -->
+                    <group string="📊 Situação Atual">
+                        <group>
+                            <field name="current_balance" readonly="1" widget="monetary"/>
+                            <field name="overdue_installments_count" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="pending_installments_count" readonly="1"/>
+                            <field name="days_overdue" readonly="1"/>
+                        </group>
+                    </group>
+                    
+                    <!-- TIPO DE RENEGOCIAÇÃO -->
+                    <group string="🔄 Tipo de Renegociação">
+                        <field name="renegotiation_type" widget="radio" nolabel="1"/>
+                    </group>
+                    
+                    <!-- OPÇÕES ESPECÍFICAS POR TIPO -->
+                    <group string="⚙️ Configurações" invisible="renegotiation_type == False">
+                        
+                        <!-- EXTENSÃO DE PRAZO -->
+                        <group string="Extensão de Prazo" invisible="renegotiation_type != 'extend'">
+                            <field name="extension_weeks" 
+                                   required="renegotiation_type == 'extend'"
+                                   help="Quantas semanas adicionar ao cronograma atual"/>
+                        </group>
+                        
+                        <!-- DESCONTO -->
+                        <group string="Aplicar Desconto" invisible="renegotiation_type != 'discount'">
+                            <field name="discount_type" widget="radio" nolabel="1"/>
+                            <field name="discount_percentage" 
+                                   invisible="discount_type != 'percentage'"
+                                   required="renegotiation_type == 'discount' and discount_type == 'percentage'"/>
+                            <field name="discount_amount" 
+                                   invisible="discount_type != 'fixed'"
+                                   required="renegotiation_type == 'discount' and discount_type == 'fixed'"
+                                   widget="monetary"/>
+                        </group>
+                        
+                        <!-- NOVOS TERMOS COMPLETOS -->
+                        <group string="Novos Termos" invisible="renegotiation_type != 'new_terms'">
+                            <field name="new_interest_rate" 
+                                   help="Nova taxa de juros (deixe vazio para manter)"/>
+                            <field name="new_weeks" 
+                                   required="renegotiation_type == 'new_terms'"
+                                   help="Novo prazo total em semanas"/>
+                        </group>
+                        
+                    </group>
+                    
+                    <!-- RESUMO DOS NOVOS TERMOS -->
+                    <div class="alert alert-success mb-3" invisible="new_balance == 0">
+                        <h5><i class="fa fa-calculator"/> Resumo da Renegociação</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Novo Saldo:</strong><br/>
+                                <span class="text-success">
+                                    <field name="new_balance" readonly="1" nolabel="1" widget="monetary"/>
+                                </span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Nova Parcela:</strong><br/>
+                                <span class="text-primary">
+                                    <field name="new_installment_amount" readonly="1" nolabel="1" widget="monetary"/>
+                                </span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Total de Parcelas:</strong><br/>
+                                <span class="text-info">
+                                    <field name="new_total_weeks" readonly="1" nolabel="1"/> semanas
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- DATA DE INÍCIO E OBSERVAÇÕES -->
+                    <group string="📅 Cronograma">
+                        <field name="renegotiation_start_date" 
+                               help="Data de início do novo cronograma de parcelas"/>
+                    </group>
+                    
+                    <group string="📝 Observações">
+                        <field name="notes" nolabel="1" 
+                               placeholder="Descreva o motivo da renegociação, acordos feitos com o cliente, etc."/>
+                    </group>
+                    
+                    <!-- CAMPOS INVISÍVEIS -->
+                    <field name="currency_id" invisible="1"/>
+                    
+                    <!-- BOTÕES -->
+                    <footer>
+                        <button name="action_confirm_renegotiation" 
+                                string="✅ Confirmar Renegociação" 
+                                type="object" 
+                                class="btn-primary"
+                                confirm="Tem certeza? Esta ação irá cancelar as parcelas pendentes atuais e criar um novo cronograma."/>
+                        <button string="❌ Cancelar" 
+                                class="btn-secondary" 
+                                special="cancel"/>
+                    </footer>
+                    
+                </form>
+            </field>
+        </record>
+        
+        <!-- ===================================== -->
+        <!-- ADICIONAR BOTÃO NO EMPRÉSTIMO         -->
+        <!-- ===================================== -->
+        
+        <record id="view_sale_order_form_renegotiation_button" model="ir.ui.view">
+            <field name="name">sale.order.form.renegotiation.button</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="gt_loan_extension.view_order_form_loan"/>
+            <field name="arch" type="xml">
+                
+                <!-- Adicionar botão Renegociar na aba Informações do Empréstimo -->
+                <button name="action_open_renegotiation_wizard" position="after">
+                    <button name="action_open_installment_renegotiation_wizard" 
+                            string="🔄 Renegociar Parcelas" 
+                            type="object" 
+                            class="btn-warning"
+                            invisible="is_loan_order == False or overdue_installments_count == 0"
+                            groups="sales_team.group_sale_manager"
+                            help="Renegociar parcelas atrasadas com novos termos"/>
+                </button>
+                
+                <!-- Adicionar campo para contar parcelas atrasadas -->
+                <field name="installments_count" position="after">
+                    <field name="overdue_installments_count" invisible="1"/>
+                </field>
+                
+            </field>
+        </record>
+        
+        <!-- ===================================== -->
+        <!-- NOVO STATUS PARA PARCELAS              -->
+        <!-- ===================================== -->
+        
+        <!-- Atualizar status da parcela para incluir "renegotiated" -->
+        <record id="view_loan_installment_form_renegotiated_status" model="ir.ui.view">
+            <field name="name">loan.installment.form.renegotiated.status</field>
+            <field name="model">loan.installment</field>
+            <field name="inherit_id" ref="gt_loan_extension.view_loan_installment_form"/>
+            <field name="arch" type="xml">
+                <field name="status" position="attributes">
+                    <attribute name="statusbar_visible">pending,paid,late,partial,renegotiated</attribute>
+                </field>
+            </field>
+        </record>
+        
+        <!-- Atualizar tree view das parcelas -->
+        <record id="view_loan_installment_tree_renegotiated_status" model="ir.ui.view">
+            <field name="name">loan.installment.tree.renegotiated.status</field>
+            <field name="model">loan.installment</field>
+            <field name="inherit_id" ref="gt_loan_extension.view_loan_installment_tree"/>
+            <field name="arch" type="xml">
+                <list position="attributes">
+                    <attribute name="decoration-muted">status == 'renegotiated'</attribute>
+                </list>
+            </field>
+        </record>
+        
+    </data>
+</odoo>
