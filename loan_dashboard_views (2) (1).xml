@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- DASHBOARD FORM VIEW -->
+        <record id="loan_dashboard_form_view" model="ir.ui.view">
+            <field name="name">loan.dashboard.form.isolated</field>
+            <field name="model">sale.order</field>
+            <field name="priority">1000</field>
+            <field name="arch" type="xml">
+                <form string="Dashboard de Empréstimos" create="false" edit="false" delete="false">
+                    <sheet>
+                        <!-- Campos invisíveis para calcular dados -->
+                        <field name="dashboard_total_month" invisible="1"/>
+                        <field name="dashboard_growth_percent" invisible="1"/>
+                        <field name="dashboard_active_count" invisible="1"/>
+                        <field name="dashboard_late_count" invisible="1"/>
+                        <field name="dashboard_today_count" invisible="1"/>
+                        <field name="dashboard_late_amount" invisible="1"/>
+                        <field name="dashboard_today_amount" invisible="1"/>
+                        <field name="dashboard_new_week" invisible="1"/>
+                        <field name="dashboard_top_clients" invisible="1"/>
+                        
+                        <!-- TÍTULO -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h1 class="text-center mb-4">
+                                    <i class="fa fa-dashboard text-primary"/> Dashboard de Empréstimos
+                                </h1>
+                            </div>
+                        </div>
+
+                        <!-- MÉTRICAS PRINCIPAIS -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="alert alert-primary text-center">
+                                    <h3>
+                                        <i class="fa fa-money"/> 
+                                        <field name="dashboard_total_month" readonly="1" nolabel="1"/>
+                                    </h3>
+                                    <p>Total Emprestado (Mês)</p>
+                                    <small class="text-success">
+                                        <i class="fa fa-arrow-up"/> 
+                                        <field name="dashboard_growth_percent" readonly="1" nolabel="1"/> vs mês anterior
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="alert alert-success text-center">
+                                    <h3>
+                                        <i class="fa fa-check-circle"/> 
+                                        <field name="dashboard_active_count" readonly="1" nolabel="1"/>
+                                    </h3>
+                                    <p>Empréstimos Ativos</p>
+                                    <small>
+                                        <field name="dashboard_new_week" readonly="1" nolabel="1"/> novos esta semana
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="alert alert-warning text-center">
+                                    <h3>
+                                        <i class="fa fa-exclamation-triangle"/> 
+                                        <field name="dashboard_late_count" readonly="1" nolabel="1"/>
+                                    </h3>
+                                    <p>Parcelas Atrasadas</p>
+                                    <small class="text-danger">
+                                        <field name="dashboard_late_amount" readonly="1" nolabel="1"/> em atraso
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="alert alert-info text-center">
+                                    <h3>
+                                        <i class="fa fa-calendar"/> 
+                                        <field name="dashboard_today_count" readonly="1" nolabel="1"/>
+                                    </h3>
+                                    <p>Vencendo Hoje</p>
+                                    <small>
+                                        <field name="dashboard_today_amount" readonly="1" nolabel="1"/> a receber
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AÇÕES RÁPIDAS -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h3>🚀 Ações Rápidas</h3>
+                                <div class="btn-group mb-3" role="group">
+                                    <button type="button" 
+                                            onclick="window.open('/web#action=sale.action_quotations_with_onboarding&amp;model=sale.order&amp;view_type=form', '_self')"
+                                            class="btn btn-primary btn-lg">
+                                        💰 Novo Empréstimo
+                                    </button>
+                                    
+                                    <button type="object" name="action_dashboard_late_installments" 
+                                            string="⚠️ Parcelas Atrasadas" 
+                                            class="btn btn-warning btn-lg"/>
+                                    
+                                    <button type="object" name="action_dashboard_today_collections" 
+                                            string="📅 Cobranças Hoje" 
+                                            class="btn btn-info btn-lg"/>
+                                    
+                                    <button type="object" name="action_dashboard_generate_report" 
+                                            string="📊 Relatório Mensal" 
+                                            class="btn btn-success btn-lg"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RESUMO VISUAL -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fa fa-bar-chart"/> Resumo Geral</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <td><span class="badge bg-success">Empréstimos Ativos</span></td>
+                                                <td class="text-end">
+                                                    <field name="dashboard_active_count" readonly="1" nolabel="1"/>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge bg-warning">Parcelas Atrasadas</span></td>
+                                                <td class="text-end">
+                                                    <field name="dashboard_late_count" readonly="1" nolabel="1"/>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge bg-info">Vencendo Hoje</span></td>
+                                                <td class="text-end">
+                                                    <field name="dashboard_today_count" readonly="1" nolabel="1"/>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge bg-primary">Novos (Semana)</span></td>
+                                                <td class="text-end">
+                                                    <field name="dashboard_new_week" readonly="1" nolabel="1"/>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fa fa-users"/> Top 3 Clientes</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <field name="dashboard_top_clients" readonly="1" nolabel="1" 
+                                               widget="text" style="white-space: pre-line; font-family: monospace;"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- INFORMAÇÕES ADICIONAIS -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="alert alert-light">
+                                    <h5><i class="fa fa-info-circle"/> Informações</h5>
+                                    <p>
+                                        📊 Dashboard atualizado automaticamente com dados reais do sistema.
+                                        <br/>
+                                        🔄 Para ver dados mais detalhados, use os botões de ação rápida acima.
+                                        <br/>
+                                        💡 Os dados são calculados em tempo real a partir dos empréstimos cadastrados.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- ACTION DO DASHBOARD -->
+        <record id="action_loan_dashboard" model="ir.actions.act_window">
+            <field name="name">Dashboard de Empréstimos</field>
+            <field name="res_model">sale.order</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="loan_dashboard_form_view"/>
+            <field name="domain">[('is_loan_order', '=', True)]</field>
+            <field name="context">{
+                'create': False, 
+                'edit': False, 
+                'delete': False,
+                'dashboard_mode': True
+            }</field>
+            <field name="target">current</field>
+            <field name="limit">1</field>
+        </record>
+
+        <!-- MENUS (SOLUÇÃO DEFINITIVA) -->
+        <menuitem id="menu_loans_dashboard"
+                  name="Dashboard de Empréstimos"
+                  parent="sale.sale_menu_root"
+                  action="action_loan_dashboard"
+                  sequence="1"/>
+
+        <!-- MENUS - APENAS DASHBOARD -->
+        <menuitem id="menu_loans_dashboard"
+                  name="Dashboard de Empréstimos"
+                  parent="sale.sale_menu_root"
+                  action="action_loan_dashboard"
+                  sequence="1"/>
+
+    </data>
+</odoo>
