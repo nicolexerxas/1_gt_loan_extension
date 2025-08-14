@@ -7,7 +7,7 @@ _logger = logging.getLogger(__name__)
 
 class LoanInstallment(models.Model):
     _name = 'loan.installment'
-    _description = 'Parcela de EmprÃ©stimo'
+    _description = 'Parcela de Emprestimo'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'sale_order_id, number'
     _rec_name = 'display_name'
@@ -32,7 +32,7 @@ class LoanInstallment(models.Model):
     )
     
     number = fields.Integer(
-        string='NÂº Parcela',
+        string='No Parcela',
         required=True
     )
     
@@ -82,7 +82,7 @@ class LoanInstallment(models.Model):
         'account.move', 
         string='Fatura Individual', 
         readonly=True,
-        help='Fatura especÃ­fica desta parcela'
+        help='Fatura especifica desta parcela'
     )
     
     invoice_state = fields.Selection(
@@ -135,7 +135,7 @@ class LoanInstallment(models.Model):
             )
     
     def action_register_payment(self):
-        """Registra pagamento total da parcela (MÃ‰TODO ORIGINAL MANTIDO)"""
+        """Registra pagamento total da parcela"""
         for rec in self:
             rec.write({
                 'amount_paid': rec.amount,
@@ -144,7 +144,7 @@ class LoanInstallment(models.Model):
             
             # Log do pagamento
             rec.message_post(
-                body=f"ðŸ'° Pagamento integral registrado: {rec.currency_id.symbol} {rec.amount:,.2f}"
+                body=f"Pagamento integral registrado: {rec.currency_id.symbol} {rec.amount:,.2f}"
             )
         return True
     
@@ -153,41 +153,41 @@ class LoanInstallment(models.Model):
     # ========================================
     
     def action_generate_batch_invoice(self):
-        """Gera uma única fatura para múltiplas parcelas selecionadas"""
+        """Gera uma unica fatura para multiplas parcelas selecionadas"""
         
-        # Validações iniciais
+        # Validacoes iniciais
         if not self:
             raise UserError("Nenhuma parcela selecionada!")
         
-        # Verifica se todas as parcelas são do mesmo cliente
+        # Verifica se todas as parcelas sao do mesmo cliente
         partners = self.mapped('partner_id')
         if len(partners) > 1:
             partner_names = ', '.join(partners.mapped('name'))
-            raise UserError(f"Não é possível gerar fatura para clientes diferentes!\nClientes: {partner_names}")
+            raise UserError(f"Nao e possivel gerar fatura para clientes diferentes!\nClientes: {partner_names}")
         
         partner = partners[0]
         
-        # Verifica se alguma parcela já possui fatura
+        # Verifica se alguma parcela ja possui fatura
         with_invoice = self.filtered('invoice_id')
         if with_invoice:
             installment_numbers = ', '.join([str(i.number) for i in with_invoice])
-            raise UserError(f"As seguintes parcelas já possuem faturas: {installment_numbers}")
+            raise UserError(f"As seguintes parcelas ja possuem faturas: {installment_numbers}")
         
-        # Verifica se há parcelas pagas
+        # Verifica se ha parcelas pagas
         paid_installments = self.filtered(lambda i: i.status == 'paid')
         if paid_installments:
             paid_numbers = ', '.join([str(i.number) for i in paid_installments])
-            raise UserError(f"Não é possível faturar parcelas já pagas: {paid_numbers}")
+            raise UserError(f"Nao e possivel faturar parcelas ja pagas: {paid_numbers}")
         
         _logger.info(f"Gerando fatura em lote para {len(self)} parcelas do cliente {partner.name}")
         
-        # Busca o produto de empréstimo
+        # Busca o produto de emprestimo
         loan_products = self.env['product.product'].search([
             ('is_loan_product', '=', True)
         ], limit=1)
         
         if not loan_products:
-            raise UserError("Nenhum produto de empréstimo encontrado! Configure um produto com 'É Produto de Empréstimo' marcado.")
+            raise UserError("Nenhum produto de emprestimo encontrado! Configure um produto com 'E Produto de Emprestimo' marcado.")
         
         loan_product = loan_products[0]
         
@@ -196,25 +196,25 @@ class LoanInstallment(models.Model):
         installment_count = len(self)
         
         if total_amount <= 0:
-            raise UserError("Não há valor pendente para faturar nas parcelas selecionadas!")
+            raise UserError("Nao ha valor pendente para faturar nas parcelas selecionadas!")
         
         # Determina as datas
         earliest_due_date = min(self.mapped('due_date'))
         latest_due_date = max(self.mapped('due_date'))
         
-        # Prepara lista de parcelas para descrição
+        # Prepara lista de parcelas para descricao
         installment_numbers = sorted([inst.number for inst in self])
         if len(installment_numbers) > 5:
             installments_desc = f"{installment_numbers[0]} a {installment_numbers[-1]}"
         else:
             installments_desc = ', '.join([str(n) for n in installment_numbers])
         
-        # Agrupa por empréstimo para a descrição
+        # Agrupa por emprestimo para a descricao
         orders = self.mapped('sale_order_id')
         if len(orders) == 1:
             order_desc = orders[0].name
         else:
-            order_desc = f"{len(orders)} empréstimos"
+            order_desc = f"{len(orders)} emprestimos"
         
         # Cria linhas da fatura agrupadas ou detalhadas
         invoice_lines = []
@@ -225,7 +225,7 @@ class LoanInstallment(models.Model):
                 if amount_to_invoice > 0:
                     invoice_lines.append((0, 0, {
                         'product_id': loan_product.id,
-                        'name': f"Parcela {installment.number} - Empréstimo {installment.sale_order_id.name} - Venc: {installment.due_date.strftime('%d/%m/%Y')}",
+                        'name': f"Parcela {installment.number} - Emprestimo {installment.sale_order_id.name} - Venc: {installment.due_date.strftime('%d/%m/%Y')}",
                         'quantity': 1,
                         'price_unit': amount_to_invoice,
                         'tax_ids': [(6, 0, loan_product.taxes_id.ids)],
@@ -233,7 +233,7 @@ class LoanInstallment(models.Model):
         else:  # Se muitas parcelas, agrupa em uma linha
             invoice_lines.append((0, 0, {
                 'product_id': loan_product.id,
-                'name': f"Faturamento em Lote - {installment_count} parcelas\nParcelas: {installments_desc}\nEmpréstimo(s): {order_desc}\nVencimentos: {earliest_due_date.strftime('%d/%m/%Y')} a {latest_due_date.strftime('%d/%m/%Y')}",
+                'name': f"Faturamento em Lote - {installment_count} parcelas\nParcelas: {installments_desc}\nEmprestimo(s): {order_desc}\nVencimentos: {earliest_due_date.strftime('%d/%m/%Y')} a {latest_due_date.strftime('%d/%m/%Y')}",
                 'quantity': installment_count,
                 'price_unit': total_amount / installment_count,
                 'tax_ids': [(6, 0, loan_product.taxes_id.ids)],
@@ -244,7 +244,7 @@ class LoanInstallment(models.Model):
             'move_type': 'out_invoice',
             'partner_id': partner.id,
             'invoice_date': fields.Date.today(),
-            'invoice_date_due': earliest_due_date,  # Usa a data mais próxima
+            'invoice_date_due': earliest_due_date,  # Usa a data mais proxima
             'currency_id': self[0].currency_id.id,
             'invoice_origin': f"Faturamento em Lote - {order_desc}",
             'ref': f"Lote: {installment_count} parcelas",
@@ -254,7 +254,7 @@ class LoanInstallment(models.Model):
         # Cria a fatura
         invoice = self.env['account.move'].create(invoice_vals)
         
-        # Vincula todas as parcelas à fatura
+        # Vincula todas as parcelas a fatura
         self.write({
             'invoice_id': invoice.id,
         })
@@ -263,11 +263,11 @@ class LoanInstallment(models.Model):
         for installment in self:
             amount_invoiced = installment.amount - installment.amount_paid
             installment.message_post(
-                body=f"📄 **Fatura em Lote:** {invoice.name}<br/>"
-                     f"💰 Valor desta parcela: {installment.currency_id.symbol} {amount_invoiced:,.2f}<br/>"
-                     f"📊 Total da fatura: {installment.currency_id.symbol} {total_amount:,.2f}<br/>"
-                     f"🔢 Parcelas incluídas: {installment_count}<br/>"
-                     f"👥 Cliente: {partner.name}"
+                body=f"Fatura em Lote: {invoice.name}<br/>"
+                     f"Valor desta parcela: {installment.currency_id.symbol} {amount_invoiced:,.2f}<br/>"
+                     f"Total da fatura: {installment.currency_id.symbol} {total_amount:,.2f}<br/>"
+                     f"Parcelas incluidas: {installment_count}<br/>"
+                     f"Cliente: {partner.name}"
             )
         
         # Log detalhado no sistema
@@ -275,9 +275,9 @@ class LoanInstallment(models.Model):
         _logger.info(f"- Cliente: {partner.name}")
         _logger.info(f"- Parcelas: {installment_numbers}")
         _logger.info(f"- Valor total: {total_amount:.2f}")
-        _logger.info(f"- Empréstimos: {[o.name for o in orders]}")
+        _logger.info(f"- Emprestimos: {[o.name for o in orders]}")
         
-        # Retorna ação para abrir a fatura
+        # Retorna acao para abrir a fatura
         return {
             'name': f'Fatura em Lote - {installment_count} Parcelas',
             'type': 'ir.actions.act_window',
@@ -298,30 +298,30 @@ class LoanInstallment(models.Model):
         """Gera fatura individual para a parcela COM VALOR CORRETO DA PARCELA"""
         for installment in self:
             if installment.invoice_id:
-                raise UserError(f"Parcela {installment.number} jÃ¡ possui fatura gerada!")
+                raise UserError(f"Parcela {installment.number} ja possui fatura gerada!")
             
             if installment.status == 'paid':
-                raise UserError(f"NÃ£o Ã© possÃ­vel gerar fatura para parcela jÃ¡ paga!")
+                raise UserError(f"Nao e possivel gerar fatura para parcela ja paga!")
             
             _logger.info(f"Gerando fatura individual para parcela {installment.number} do pedido {installment.sale_order_id.name}")
             
-            # Busca o produto de emprÃ©stimo
+            # Busca o produto de emprestimo
             loan_products = self.env['product.product'].search([
                 ('is_loan_product', '=', True)
             ], limit=1)
             
             if not loan_products:
-                raise UserError("Nenhum produto de emprÃ©stimo encontrado! Configure um produto com 'Ã‰ Produto de EmprÃ©stimo' marcado.")
+                raise UserError("Nenhum produto de emprestimo encontrado! Configure um produto com 'E Produto de Emprestimo' marcado.")
             
             loan_product = loan_products[0]
             
-            # Valor a faturar = valor da parcela - valor jÃ¡ pago
+            # Valor a faturar = valor da parcela - valor ja pago
             amount_to_invoice = installment.amount - installment.amount_paid
             
             if amount_to_invoice <= 0:
-                raise UserError("NÃ£o hÃ¡ valor pendente para faturar nesta parcela!")
+                raise UserError("Nao ha valor pendente para faturar nesta parcela!")
             
-            _logger.info(f"Faturando parcela {installment.number}: Valor da parcela = ${installment.amount:.2f}, JÃ¡ pago = ${installment.amount_paid:.2f}, A faturar = ${amount_to_invoice:.2f}")
+            _logger.info(f"Faturando parcela {installment.number}: Valor da parcela = ${installment.amount:.2f}, Ja pago = ${installment.amount_paid:.2f}, A faturar = ${amount_to_invoice:.2f}")
             
             # Dados da fatura individual
             invoice_vals = {
@@ -334,7 +334,7 @@ class LoanInstallment(models.Model):
                 'ref': f"Parcela {installment.number}/{installment.sale_order_id.loan_weeks}",
                 'invoice_line_ids': [(0, 0, {
                     'product_id': loan_product.id,
-                    'name': f"EmprÃ©stimo - Parcela {installment.number}/{installment.sale_order_id.loan_weeks} - Venc: {installment.due_date.strftime('%d/%m/%Y')}",
+                    'name': f"Emprestimo - Parcela {installment.number}/{installment.sale_order_id.loan_weeks} - Venc: {installment.due_date.strftime('%d/%m/%Y')}",
                     'quantity': 1,
                     'price_unit': amount_to_invoice,
                     'tax_ids': [(6, 0, loan_product.taxes_id.ids)],
@@ -344,22 +344,22 @@ class LoanInstallment(models.Model):
             # Cria a fatura
             invoice = self.env['account.move'].create(invoice_vals)
             
-            # Vincula a fatura Ã  parcela
+            # Vincula a fatura a parcela
             installment.write({
                 'invoice_id': invoice.id,
             })
             
-            # Log da criaÃ§Ã£o
+            # Log da criacao
             installment.message_post(
-                body=f"ðŸ"„ Fatura individual gerada: {invoice.name}<br/>"
-                     f"ðŸ'° Valor faturado: {installment.currency_id.symbol} {amount_to_invoice:,.2f}<br/>"
-                     f"ðŸ"… Vencimento: {installment.due_date.strftime('%d/%m/%Y')}<br/>"
-                     f"ðŸ"‹ Parcela {installment.number} de {installment.sale_order_id.loan_weeks}"
+                body=f"Fatura individual gerada: {invoice.name}<br/>"
+                     f"Valor faturado: {installment.currency_id.symbol} {amount_to_invoice:,.2f}<br/>"
+                     f"Vencimento: {installment.due_date.strftime('%d/%m/%Y')}<br/>"
+                     f"Parcela {installment.number} de {installment.sale_order_id.loan_weeks}"
             )
             
             _logger.info(f"Fatura individual {invoice.name} criada com sucesso para parcela {installment.number} - Valor: ${amount_to_invoice:.2f}")
             
-            # Retorna aÃ§Ã£o para abrir a fatura
+            # Retorna acao para abrir a fatura
             return {
                 'name': f'Fatura - Parcela {installment.number}',
                 'type': 'ir.actions.act_window',
@@ -375,7 +375,7 @@ class LoanInstallment(models.Model):
         """Abre a fatura da parcela"""
         self.ensure_one()
         if not self.invoice_id:
-            raise UserError("Esta parcela nÃ£o possui fatura gerada!")
+            raise UserError("Esta parcela nao possui fatura gerada!")
         
         return {
             'name': f'Fatura - Parcela {self.number}',
@@ -392,7 +392,7 @@ class LoanInstallment(models.Model):
         
         remaining_amount = self.amount - self.amount_paid
         if remaining_amount <= 0:
-            raise UserError("Esta parcela jÃ¡ estÃ¡ totalmente paga!")
+            raise UserError("Esta parcela ja esta totalmente paga!")
         
         return {
             'name': f'Registrar Pagamento - Parcela {self.number}',
@@ -411,10 +411,10 @@ class LoanInstallment(models.Model):
         """Cancela a fatura da parcela"""
         self.ensure_one()
         if not self.invoice_id:
-            raise UserError("Esta parcela nÃ£o possui fatura!")
+            raise UserError("Esta parcela nao possui fatura!")
         
         if self.invoice_id.state == 'posted' and self.invoice_id.payment_state == 'paid':
-            raise UserError("NÃ£o Ã© possÃ­vel cancelar fatura jÃ¡ paga!")
+            raise UserError("Nao e possivel cancelar fatura ja paga!")
         
         invoice_name = self.invoice_id.name
         invoice_amount = self.invoice_id.amount_total
@@ -432,14 +432,14 @@ class LoanInstallment(models.Model):
         
         # Log do cancelamento
         self.message_post(
-            body=f"âŒ Fatura {invoice_name} cancelada e removida da parcela {self.number}<br/>"
-                 f"ðŸ'° Valor cancelado: {self.currency_id.symbol} {invoice_amount:,.2f}"
+            body=f"Fatura {invoice_name} cancelada e removida da parcela {self.number}<br/>"
+                 f"Valor cancelado: {self.currency_id.symbol} {invoice_amount:,.2f}"
         )
         
         return True
     
     # ========================================
-    # AUTOMAÃ‡ÃƒO DE PAGAMENTOS VIA FATURAS
+    # AUTOMACAO DE PAGAMENTOS VIA FATURAS
     # ========================================
     
     @api.model
@@ -460,11 +460,11 @@ class LoanInstallment(models.Model):
             ])
             
             for installment in installments:
-                # Valor pago Ã© o valor da fatura paga
+                # Valor pago e o valor da fatura paga
                 paid_amount = invoice.amount_total
                 total_paid = installment.amount_paid + paid_amount
                 
-                # NÃ£o pode pagar mais que o valor da parcela
+                # Nao pode pagar mais que o valor da parcela
                 final_paid = min(total_paid, installment.amount)
                 
                 installment.write({
@@ -472,29 +472,29 @@ class LoanInstallment(models.Model):
                     'payment_date': fields.Date.today() if final_paid >= installment.amount else installment.payment_date
                 })
                 
-                # Log da atualizaÃ§Ã£o automÃ¡tica
+                # Log da atualizacao automatica
                 installment.message_post(
-                    body=f"ðŸ"„ Status atualizado automaticamente via fatura {invoice.name}<br/>"
-                         f"ðŸ'° Valor pago: {installment.currency_id.symbol} {paid_amount:,.2f}<br/>"
-                         f"ðŸ"Š Total pago na parcela: {installment.currency_id.symbol} {final_paid:,.2f}"
+                    body=f"Status atualizado automaticamente via fatura {invoice.name}<br/>"
+                         f"Valor pago: {installment.currency_id.symbol} {paid_amount:,.2f}<br/>"
+                         f"Total pago na parcela: {installment.currency_id.symbol} {final_paid:,.2f}"
                 )
                 
                 updated_count += 1
                 _logger.info(f"Parcela {installment.number} atualizada automaticamente via fatura {invoice.name} - Valor: ${paid_amount:.2f}")
         
         if updated_count > 0:
-            _logger.info(f"AutomaÃ§Ã£o de pagamentos concluÃ­da: {updated_count} parcelas atualizadas")
+            _logger.info(f"Automacao de pagamentos concluida: {updated_count} parcelas atualizadas")
     
     # ========================================
-    # VALIDAÃ‡Ã•ES E CONSTRAINTS
+    # VALIDACOES E CONSTRAINTS
     # ========================================
     
     @api.constrains('amount_paid', 'amount')
     def _check_amount_paid(self):
-        """Valida se valor pago nÃ£o Ã© maior que valor da parcela"""
+        """Valida se valor pago nao e maior que valor da parcela"""
         for rec in self:
             if rec.amount_paid > rec.amount:
-                raise ValidationError(f"Valor pago (${rec.amount_paid:.2f}) nÃ£o pode ser maior que o valor da parcela (${rec.amount:.2f})")
+                raise ValidationError(f"Valor pago (${rec.amount_paid:.2f}) nao pode ser maior que o valor da parcela (${rec.amount:.2f})")
 
     @api.constrains('due_date')
     def _check_due_date(self):
@@ -502,7 +502,7 @@ class LoanInstallment(models.Model):
         for rec in self:
             if rec.due_date and rec.sale_order_id.loan_start_date:
                 if rec.due_date <= rec.sale_order_id.loan_start_date:
-                    raise ValidationError("Data de vencimento deve ser posterior Ã  data de inÃ­cio do emprÃ©stimo")
+                    raise ValidationError("Data de vencimento deve ser posterior a data de inicio do emprestimo")
 
     def name_get(self):
         """Nome personalizado para parcelas"""
@@ -514,9 +514,9 @@ class LoanInstallment(models.Model):
             if installment.amount:
                 name += f" (${installment.amount:.2f})"
             if installment.status == 'late':
-                name += f" âš ï¸ {installment.days_late} dias"
+                name += f" Alerta {installment.days_late} dias"
             elif installment.status == 'paid':
-                name += " âœ…"
+                name += " OK"
                 
             result.append((installment.id, name))
         return result
