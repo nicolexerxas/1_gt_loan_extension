@@ -17,7 +17,7 @@
                     </header>
                     <sheet>
                         <group>
-                            <group string="Informações da Parcela">
+                            <group string="InformaÃ§Ãµes da Parcela">
                                 <field name="sale_order_id" readonly="1"/>
                                 <field name="partner_id" readonly="1"/>
                                 <field name="number" readonly="1"/>
@@ -35,7 +35,7 @@
             </field>
         </record>
 
-        <!-- List View (CORRIGIDO PARA ODOO 18) -->
+        <!-- List View (ATUALIZADA COM COLUNA CLIENTE) -->
         <record id="view_loan_installment_tree" model="ir.ui.view">
             <field name="name">loan.installment.tree</field>
             <field name="model">loan.installment</field>
@@ -46,7 +46,7 @@
                       decoration-info="status == 'partial'"
                       editable="bottom">
                     <field name="sale_order_id" readonly="1"/>
-                    <field name="partner_id" readonly="1"/>
+                    <field name="partner_id" readonly="1" string="Cliente"/>
                     <field name="number" readonly="1"/>
                     <field name="due_date" readonly="1"/>
                     <field name="amount" readonly="1" sum="Total"/>
@@ -58,14 +58,17 @@
             </field>
         </record>
 
-        <!-- Search View -->
+        <!-- Search View (ATUALIZADA COM FILTROS POR CLIENTE) -->
         <record id="view_loan_installment_search" model="ir.ui.view">
             <field name="name">loan.installment.search</field>
             <field name="model">loan.installment</field>
             <field name="arch" type="xml">
                 <search string="Buscar Parcelas">
                     <field name="sale_order_id"/>
-                    <field name="partner_id"/>
+                    <field name="partner_id" string="Cliente"/>
+                    <field name="number" string="Número da Parcela"/>
+                    
+                    <!-- FILTROS PRINCIPAIS -->
                     <filter string="Vencendo Hoje" name="due_today" 
                             domain="[('due_date', '=', context_today().strftime('%Y-%m-%d')), ('status', '!=', 'paid')]"/>
                     <filter string="Atrasadas" name="late" 
@@ -74,10 +77,23 @@
                             domain="[('status', '=', 'pending')]"/>
                     <filter string="Pagas" name="paid" 
                             domain="[('status', '=', 'paid')]"/>
+                    <filter string="Parcialmente Pagas" name="partial" 
+                            domain="[('status', '=', 'partial')]"/>
+                    
                     <separator/>
+                    
+                    <!-- FILTROS POR PERÍODO -->
+                    <filter string="Este Mês" name="this_month"
+                            domain="[('due_date', '&gt;=', datetime.date.today().replace(day=1)), ('due_date', '&lt;=', (datetime.date.today().replace(day=1) + datetime.timedelta(days=32)).replace(day=1) - datetime.timedelta(days=1))]"/>
+                    <filter string="Próximos 7 Dias" name="next_week"
+                            domain="[('due_date', '&gt;=', datetime.date.today()), ('due_date', '&lt;=', datetime.date.today() + datetime.timedelta(days=7)), ('status', '!=', 'paid')]"/>
+                    
+                    <separator/>
+                    
+                    <!-- AGRUPAMENTOS -->
                     <group expand="0" string="Agrupar por">
                         <filter string="Cliente" name="group_partner" domain="[]" context="{'group_by': 'partner_id'}"/>
-                        <filter string="Ordem" name="group_order" domain="[]" context="{'group_by': 'sale_order_id'}"/>
+                        <filter string="Empréstimo" name="group_order" domain="[]" context="{'group_by': 'sale_order_id'}"/>
                         <filter string="Status" name="group_status" domain="[]" context="{'group_by': 'status'}"/>
                         <filter string="Vencimento" name="group_due_date" domain="[]" context="{'group_by': 'due_date:month'}"/>
                     </group>
@@ -94,7 +110,7 @@
         </record>
 
         <record id="action_loan_installments_today" model="ir.actions.act_window">
-            <field name="name">Cobranças do Dia</field>
+            <field name="name">CobranÃ§as do Dia</field>
             <field name="res_model">loan.installment</field>
             <field name="view_mode">list,form</field>
             <field name="search_view_id" ref="view_loan_installment_search"/>
@@ -109,7 +125,16 @@
             <field name="context">{'search_default_late': 1}</field>
         </record>
 
-        <!-- List View com Botões (Para o botão "Ver Todas as Parcelas") -->
+        <!-- NOVA ACTION: Parcelas por Cliente -->
+        <record id="action_loan_installments_by_client" model="ir.actions.act_window">
+            <field name="name">Parcelas por Cliente</field>
+            <field name="res_model">loan.installment</field>
+            <field name="view_mode">list,form,pivot</field>
+            <field name="search_view_id" ref="view_loan_installment_search"/>
+            <field name="context">{'search_default_group_partner': 1}</field>
+        </record>
+
+        <!-- List View com BotÃµes (Para o botÃ£o "Ver Todas as Parcelas") -->
         <record id="loan_installment_tree_view" model="ir.ui.view">
             <field name="name">loan.installment.list.detailed</field>
             <field name="model">loan.installment</field>
@@ -121,6 +146,7 @@
                       create="false" 
                       delete="false">
                     
+                    <field name="partner_id" string="Cliente"/>
                     <field name="number"/>
                     <field name="due_date"/>
                     <field name="amount" sum="Total"/>
@@ -130,7 +156,7 @@
                     <field name="invoice_id" optional="hide"/>
                     <field name="payment_date" optional="hide"/>
                     
-                    <!-- BOTÕES DE AÇÃO -->
+                    <!-- BOTÃ•ES DE AÃ‡ÃƒO -->
                     <button name="action_generate_invoice" 
                             string="Gerar Fatura" 
                             type="object" 
@@ -156,7 +182,7 @@
             </field>
         </record>
 
-        <!-- Form View Detalhado (Para o botão "Ver Todas as Parcelas") -->
+        <!-- Form View Detalhado (Para o botÃ£o "Ver Todas as Parcelas") -->
         <record id="loan_installment_form_view" model="ir.ui.view">
             <field name="name">loan.installment.form.detailed</field>
             <field name="model">loan.installment</field>
@@ -173,7 +199,7 @@
                         </div>
                         
                         <group>
-                            <group string="Informações Básicas">
+                            <group string="InformaÃ§Ãµes BÃ¡sicas">
                                 <field name="number" readonly="1"/>
                                 <field name="sale_order_id" readonly="1"/>
                                 <field name="partner_id" readonly="1"/>
@@ -204,9 +230,9 @@
             </field>
         </record>
 
-        <!-- Action das Parcelas (Para o botão "Ver Todas as Parcelas") -->
+        <!-- Action das Parcelas (Para o botÃ£o "Ver Todas as Parcelas") -->
         <record id="loan_installment_action" model="ir.actions.act_window">
-            <field name="name">Parcelas do Empréstimo</field>
+            <field name="name">Parcelas do EmprÃ©stimo</field>
             <field name="res_model">loan.installment</field>
             <field name="view_mode">list,form</field>
             <field name="context">{}</field>
@@ -215,7 +241,7 @@
                     Nenhuma parcela encontrada!
                 </p>
                 <p>
-                    As parcelas são geradas automaticamente quando você clica em "Gerar Parcelas" no empréstimo.
+                    As parcelas sÃ£o geradas automaticamente quando vocÃª clica em "Gerar Parcelas" no emprÃ©stimo.
                 </p>
             </field>
         </record>
@@ -233,7 +259,7 @@
                   sequence="1"/>
         
         <menuitem id="menu_loan_installments_today"
-                  name="Cobranças do Dia"
+                  name="CobranÃ§as do Dia"
                   parent="menu_loan_installments"
                   action="action_loan_installments_today"
                   sequence="2"/>
@@ -243,5 +269,12 @@
                   parent="menu_loan_installments"
                   action="action_loan_installments_late"
                   sequence="3"/>
+
+        <!-- NOVO MENU: Parcelas por Cliente -->
+        <menuitem id="menu_loan_installments_by_client"
+                  name="Por Cliente"
+                  parent="menu_loan_installments"
+                  action="action_loan_installments_by_client"
+                  sequence="4"/>
     </data>
 </odoo>
